@@ -1,67 +1,78 @@
+<!--
+https://eugenkiss.github.io/7guis/tasks/#flight
+-->
+
 <script setup>
-import { ref, watchEffect } from "vue";
+import { ref, computed } from 'vue'
 
-const API_URL = `https://api.github.com/repos/vuejs/core/commits?per_page=3&sha=`;
-const branches = ["main", "minor"];
+const flightType = ref('one-way flight')
+const departureDate = ref(dateToString(new Date()))
+const returnDate = ref(departureDate.value)
 
-const currentBranch = ref(branches[0]);
-const commits = ref([]);
+const isReturn = computed(() => flightType.value === 'return flight')
 
-watchEffect(async () => {
-  const url = `${API_URL}${currentBranch.value}`;
-  commits.value = await (await fetch(url)).json();
-});
+const canBook = computed(
+  () =>
+    !isReturn.value ||
+    stringToDate(returnDate.value) > stringToDate(departureDate.value)
+)
 
-function truncate(v) {
-  const newline = v.indexOf("\n");
-  return newline > 0 ? v.slice(0, newline) : v;
+function book() {
+  alert(
+    isReturn.value
+      ? `You have booked a return flight leaving on ${departureDate.value} and returning on ${returnDate.value}.`
+      : `You have booked a one-way flight leaving on ${departureDate.value}.`
+  )
 }
 
-function formatDate(v) {
-  return v.replace(/T|Z/g, " ");
+function stringToDate(str) {
+  const [y, m, d] = str.split('-')
+  return new Date(+y, m - 1, +d)
+}
+
+function dateToString(date) {
+  return (
+    date.getFullYear() +
+    '-' +
+    pad(date.getMonth() + 1) +
+    '-' +
+    pad(date.getDate())
+  )
+}
+
+function pad(n, s = String(n)) {
+  return s.length < 2 ? `0${s}` : s
 }
 </script>
 
 <template>
-  <h1>Latest Vue Core Commits</h1>
-  <template v-for="branch in branches">
-    <input
-      type="radio"
-      :id="branch"
-      :value="branch"
-      name="branch"
-      v-model="currentBranch"
-    />
-    <label :for="branch">{{ branch }}</label>
-  </template>
-  <p>vuejs/core@{{ currentBranch }}</p>
-  <ul v-if="commits.length > 0">
-    <li v-for="{ html_url, sha, author, commit } in commits" :key="sha">
-      <a :href="html_url" target="_blank" class="commit">{{
-        sha.slice(0, 7)
-      }}</a>
-      - <span class="message">{{ truncate(commit.message) }}</span
-      ><br />
-      by
-      <span class="author">
-        <a :href="author.html_url" target="_blank">{{ commit.author.name }}</a>
-      </span>
-      at <span class="date">{{ formatDate(commit.author.date) }}</span>
-    </li>
-  </ul>
+  <select v-model="flightType">
+    <option value="one-way flight">One-way Flight</option>
+    <option value="return flight">Return Flight</option>
+  </select>
+
+  <input type="date" v-model="departureDate">
+  <input type="date" v-model="returnDate" :disabled="!isReturn">
+
+  <button :disabled="!canBook" @click="book">Book</button>
+
+  <p>{{ canBook ? '' : 'Return date must be after departure date.' }}</p>
 </template>
 
 <style>
-a {
-  text-decoration: none;
-  color: #42b883;
+select,
+input,
+button {
+  display: block;
+  margin: 0.5em 0;
+  font-size: 15px;
 }
-li {
-  line-height: 1.5em;
-  margin-bottom: 20px;
+
+input[disabled] {
+  color: #999;
 }
-.author,
-.date {
-  font-weight: bold;
+
+p {
+  color: red;
 }
 </style>
