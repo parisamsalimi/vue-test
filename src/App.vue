@@ -1,78 +1,89 @@
-<!--
-https://eugenkiss.github.io/7guis/tasks/#flight
--->
-
 <script setup>
-import { ref, computed } from 'vue'
+import { ref , reactive, computed, watch} from "vue"
 
-const flightType = ref('one-way flight')
-const departureDate = ref(dateToString(new Date()))
-const returnDate = ref(departureDate.value)
+const names = reactive(['Emil, Hans', 'Mustermann, Max', 'Tisch, Roman']) 
 
-const isReturn = computed(() => flightType.value === 'return flight')
+const selected = ref('')
+const prefix = ref('')
+const first = ref('')
+const last = ref('')
 
-const canBook = computed(
-  () =>
-    !isReturn.value ||
-    stringToDate(returnDate.value) > stringToDate(departureDate.value)
+ const filteredNames = computed(() =>
+  names.filter((n) =>
+    n.toLowerCase().startsWith(prefix.value.toLowerCase())
+  )
 )
 
-function book() {
-  alert(
-    isReturn.value
-      ? `You have booked a return flight leaving on ${departureDate.value} and returning on ${returnDate.value}.`
-      : `You have booked a one-way flight leaving on ${departureDate.value}.`
-  )
+watch(selected, (name) => {
+  [last.value, first.value] = name.split(', ')
+})
+function create() {
+  if (hasValidInput()) {
+    const fullName = `${last.value}, ${first.value}`
+    if (!names.includes(fullName)) {
+      names.push(fullName)
+      first.value = last.value = ''
+    }
+  }
 }
 
-function stringToDate(str) {
-  const [y, m, d] = str.split('-')
-  return new Date(+y, m - 1, +d)
+function update() {
+  if (hasValidInput() && selected.value) {
+    const i = names.indexOf(selected.value)
+    names[i] = selected.value = `${last.value}, ${first.value}`
+  }
 }
 
-function dateToString(date) {
-  return (
-    date.getFullYear() +
-    '-' +
-    pad(date.getMonth() + 1) +
-    '-' +
-    pad(date.getDate())
-  )
+function del() {
+  if (selected.value) {
+    const i = names.indexOf(selected.value)
+    names.splice(i, 1)
+    selected.value = first.value = last.value = ''
+  }
 }
 
-function pad(n, s = String(n)) {
-  return s.length < 2 ? `0${s}` : s
+function hasValidInput() {
+  return first.value.trim() && last.value.trim()
 }
 </script>
-
 <template>
-  <select v-model="flightType">
-    <option value="one-way flight">One-way Flight</option>
-    <option value="return flight">Return Flight</option>
+<div>
+  <input v-model="prefix" placeholder="Enter Prefix"></input>
+  <select size="5" v-model="selected">
+    <option v-for="name in filteredNames" :key="name">{{ name }}</option>
+
   </select>
+  <label>Name: <input v-model="first"></label>
+  <label>Surname: <input v-model="last"></label>
+  <div class="buttons">
+    <button @click="create">Create</button>
+    <button @click="update">Update</button>
+    <button @click="del">Delete</button>
+  </div>
 
-  <input type="date" v-model="departureDate">
-  <input type="date" v-model="returnDate" :disabled="!isReturn">
-
-  <button :disabled="!canBook" @click="book">Book</button>
-
-  <p>{{ canBook ? '' : 'Return date must be after departure date.' }}</p>
+</div>
 </template>
-
 <style>
-select,
-input,
-button {
+* {
+  font-size: inherit;
+}
+
+input {
   display: block;
-  margin: 0.5em 0;
-  font-size: 15px;
+  margin-bottom: 10px;
 }
 
-input[disabled] {
-  color: #999;
+select {
+  float: left;
+  margin: 0 1em 1em 0;
+  width: 14em;
 }
 
-p {
-  color: red;
+.buttons {
+  clear: both;
+}
+
+button + button {
+  margin-left: 5px;
 }
 </style>
